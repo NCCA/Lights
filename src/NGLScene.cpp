@@ -45,8 +45,6 @@ NGLScene::~NGLScene()
    {
       delete m_lightArray[i];
    }
-   ngl::NGLInit *Init = ngl::NGLInit::instance();
-   Init->NGLQuit();
 }
 
 void NGLScene::resizeGL(int _w, int _h)
