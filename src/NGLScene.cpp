@@ -319,7 +319,7 @@ void NGLScene::createLights()
       speccol=rand->getRandomColour();
       speccol.clamp(0.1,0.2);
       // create an instance of the light and put it in the array
-      m_lightArray[i] = new ngl::Light(pos,col,speccol,ngl::POINTLIGHT);
+      m_lightArray[i] = new ngl::Light(pos,col,speccol,ngl::LightModes::POINTLIGHT);
       QString lightName=QString("light[%1]").arg(i);
       m_lightArray[i]->setTransform(iv);
       m_lightArray[i]->loadToShader(lightName.toStdString());
