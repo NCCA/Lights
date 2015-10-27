@@ -102,7 +102,7 @@ void NGLScene::initializeGL()
   shader->setShaderParam3f("viewerPos",m_cam->getEye().m_x,m_cam->getEye().m_y,m_cam->getEye().m_z);
 
   // now set the material and light values
-  ngl::Material m(ngl::POLISHEDSILVER);
+  ngl::Material m(ngl::STDMAT::POLISHEDSILVER);
   m.loadToShader("material");
   // create the lights
   createLights();
