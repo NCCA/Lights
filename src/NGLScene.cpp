@@ -31,8 +31,6 @@ NGLScene::NGLScene()
   m_spinYFace=0;
   setTitle("Using ngl::Light as a point light");
   m_teapotRotation=0.0;
-  m_rotationTimer=startTimer(20);
-  m_lightChangeTimer=startTimer(1000);
   m_scale=8.0;
 
 }
@@ -52,6 +50,12 @@ void NGLScene::resizeGL(QResizeEvent *_event)
   m_cam.setShape(45.0f,(float)width()/height(),0.05f,350.0f);
 }
 
+void NGLScene::resizeGL(int _w , int _h)
+{
+  m_cam.setShape(45.0f,(float)_w/_h,0.05f,350.0f);
+  m_width=_w*devicePixelRatio();
+  m_height=_h*devicePixelRatio();
+}
 
 void NGLScene::initializeGL()
 {
@@ -101,9 +105,8 @@ void NGLScene::initializeGL()
   m.loadToShader("material");
   // create the lights
   createLights();
-  // as re-size is not explicitly called we need to do this.
-  glViewport(0,0,width(),height());
-
+  m_rotationTimer=startTimer(20);
+  m_lightChangeTimer=startTimer(1000);
 
 
 }
@@ -307,21 +310,22 @@ void NGLScene::createLights()
   int i=0;
   for(auto &light : m_lightArray)
   {
+    light.enable();
     // get a random light position
-      pos=rand->getRandomPoint(20,20,20);
-      // create random colour
-      col=rand->getRandomColour();
-      col.clamp(0.05,0.3);
-      speccol=rand->getRandomColour();
-      speccol.clamp(0.1,0.2);
-      // create an instance of the light and put it in the array
-      light.setPosition(pos);
-      light.setColour(col);
-      light.setSpecColour(speccol);
-      QString lightName=QString("light[%1]").arg(i++);
-      std::cout<<lightName.toStdString()<<"\n";
-      light.setTransform(iv);
-      light.loadToShader(lightName.toStdString());
+    pos=rand->getRandomPoint(20,20,20);
+    // create random colour
+    col=rand->getRandomColour();
+    col.clamp(0.05,0.3);
+    speccol=rand->getRandomColour();
+    speccol.clamp(0.1,0.2);
+    // create an instance of the light and put it in the array
+    light.setPosition(pos);
+    light.setColour(col);
+    light.setSpecColour(speccol);
+    QString lightName=QString("light[%1]").arg(i++);
+    std::cout<<lightName.toStdString()<<"\n";
+    light.setTransform(iv);
+    light.loadToShader(lightName.toStdString());
   }
 }
 
