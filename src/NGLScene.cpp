@@ -11,17 +11,11 @@
 #include <ngl/Random.h>
 #include <ngl/ShaderLib.h>
 
-
-
-
-
 NGLScene::NGLScene()
 {
-
   setTitle("Using ngl::Light as a point light");
-  m_teapotRotation=0.0;
-  m_scale=8.0;
-
+  m_teapotRotation=0.0f;
+  m_scale=8.0f;
 }
 
 
@@ -57,7 +51,7 @@ void NGLScene::initializeGL()
   m_cam.set(from,to,up);
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape(45,(float)720.0/576.0,0.5,150);
+  m_cam.setShape(45.0f,(float)720.0/576.0f,0.5f,150.0f);
   // now to load the shader and set the values
   // grab an instance of shader manager
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
@@ -78,8 +72,8 @@ void NGLScene::initializeGL()
   (*shader)["Phong"]->use();
 
   // now pass the modelView and projection values to the shader
-  shader->setShaderParam1i("Normalize",1);
-  shader->setShaderParam3f("viewerPos",m_cam.getEye().m_x,m_cam.getEye().m_y,m_cam.getEye().m_z);
+  shader->setUniform("Normalize",1);
+  shader->setUniform("viewerPos",m_cam.getEye().toVec3());
 
   // now set the material and light values
   ngl::Material m(ngl::STDMAT::POLISHEDSILVER);
@@ -106,10 +100,10 @@ void NGLScene::loadMatricesToShader()
   MVP=MV*m_cam.getProjectionMatrix() ;
   normalMatrix=MV;
   normalMatrix.inverse();
-  shader->setShaderParamFromMat4("MV",MV);
-  shader->setShaderParamFromMat4("MVP",MVP);
-  shader->setShaderParamFromMat3("normalMatrix",normalMatrix);
-  shader->setShaderParamFromMat4("M",M);
+  shader->setUniform("MV",MV);
+  shader->setUniform("MVP",MVP);
+  shader->setUniform("normalMatrix",normalMatrix);
+  shader->setUniform("M",M);
 }
 
 void NGLScene::paintGL()
@@ -213,9 +207,9 @@ void NGLScene::createLights()
     pos=rand->getRandomPoint(20,20,20);
     // create random colour
     col=rand->getRandomColour();
-    col.clamp(0.05,0.3);
+    col.clamp(0.05f,0.3f);
     speccol=rand->getRandomColour();
-    speccol.clamp(0.1,0.2);
+    speccol.clamp(0.1f,0.2f);
     // create an instance of the light and put it in the array
     light.setPosition(pos);
     light.setColour(col);
