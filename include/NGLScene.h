@@ -1,11 +1,8 @@
 #ifndef NGLSCENE_H_
 #define NGLSCENE_H_
-#include <ngl/Camera.h>
-#include <ngl/Colour.h>
-#include <ngl/Light.h>
+#include <QOpenGLWindow>
 #include <ngl/Transformation.h>
 #include <ngl/Text.h>
-#include <QOpenGLWindow>
 #include "WindowParams.h"
 #include <array>
 #include <memory>
@@ -61,7 +58,8 @@ private:
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief Our Camera
     //----------------------------------------------------------------------------------------------------------------------
-    ngl::Camera m_cam;
+    ngl::Mat4 m_view;
+    ngl::Mat4 m_project;
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief transformation stack for the gl transformations etc
     //----------------------------------------------------------------------------------------------------------------------
@@ -72,18 +70,26 @@ private:
     ngl::Vec3 m_modelPos;
     // an array of lights
     constexpr static int NumLights=8;
+    struct Light
+    {
+      ngl::Vec4 position;
+      ngl::Vec4 ambient;
+      ngl::Vec4 diffuse;
+      ngl::Vec4 specular;
+    };
 
-    std::array<ngl::Light,NumLights> m_lightArray;
-    ngl::Real m_teapotRotation;
+    std::array<Light,NumLights> m_lightArray;
+    ngl::Real m_teapotRotation=0.0f;
     int m_rotationTimer;
     int m_lightChangeTimer;
-    ngl::Real m_scale;
+    ngl::Real m_scale=8.0f;
 
 
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief method to load transform matrices to the shader
     //----------------------------------------------------------------------------------------------------------------------
     void loadMatricesToShader();
+    void loadMatricesToColourShader(const ngl::Vec4 &_colour);
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief Qt Event called when a key is pressed
     /// @param [in] _event the Qt event to query for size etc

@@ -2,10 +2,7 @@
 #include <QGuiApplication>
 
 #include "NGLScene.h"
-#include <ngl/Camera.h>
-#include <ngl/Light.h>
 #include <ngl/Transformation.h>
-#include <ngl/Material.h>
 #include <ngl/NGLInit.h>
 #include <ngl/VAOPrimitives.h>
 #include <ngl/Random.h>
@@ -13,21 +10,18 @@
 
 NGLScene::NGLScene()
 {
-  setTitle("Using ngl::Light as a point light");
-  m_teapotRotation=0.0f;
-  m_scale=8.0f;
+  setTitle("Multiple Point Lights");
 }
 
 
 NGLScene::~NGLScene()
 {
-  std::cout<<"Shutting down NGL, removing VAO's and Shaders\n";
-
+  ngl::msg->addMessage("Shutting down NGL, removing VAO's and Shaders");
 }
 
 void NGLScene::resizeGL( int _w, int _h )
 {
-  m_cam.setShape( 45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
+  m_project=ngl::perspective(45.0f, static_cast<float>( _w ) / _h, 0.05f, 350.0f );
   m_win.width  = static_cast<int>( _w * devicePixelRatio() );
   m_win.height = static_cast<int>( _h * devicePixelRatio() );
 }
@@ -47,14 +41,13 @@ void NGLScene::initializeGL()
   ngl::Vec3 to(0,0,0);
   ngl::Vec3 up(0,1,0);
 
-  std::cout << "OpenGL Version : " << glGetString(GL_VERSION) << std::endl;
-  m_cam.set(from,to,up);
+  m_view=ngl::lookAt(from,to,up);
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
-  m_cam.setShape(45.0f,(float)720.0/576.0f,0.5f,150.0f);
+  m_project=ngl::perspective(45.0f,720.0f/576.0f,0.5f,150.0f);
   // now to load the shader and set the values
   // grab an instance of shader manager
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
+  auto *shader=ngl::ShaderLib::instance();
 
   shader->createShaderProgram("Phong");
 
@@ -73,11 +66,14 @@ void NGLScene::initializeGL()
 
   // now pass the modelView and projection values to the shader
   shader->setUniform("Normalize",1);
-  shader->setUniform("viewerPos",m_cam.getEye().toVec3());
+  shader->setUniform("viewerPos",from);
+  shader->setUniform("material.ambient",0.19225f,0.19225f,0.19225f,1.0f);
+  shader->setUniform("material.diffuse",0.50754f,0.50754f,0.50754f,1.0f);
+  shader->setUniform("material.specular",0.508273f,0.508273f,0.508273f,1.0f);
+  shader->setUniform("material.shininess",51.2f);
 
   // now set the material and light values
-  ngl::Material m(ngl::STDMAT::POLISHEDSILVER);
-  m.loadToShader("material");
+
   // create the lights
   createLights();
   m_rotationTimer=startTimer(20);
@@ -85,19 +81,27 @@ void NGLScene::initializeGL()
 
 
 }
-
+void NGLScene::loadMatricesToColourShader(const ngl::Vec4 &_colour)
+{
+  auto *shader=ngl::ShaderLib::instance();
+  shader->use(ngl::nglColourShader);
+  ngl::Mat4 MVP=m_project*m_view*m_mouseGlobalTX*m_transform.getMatrix();
+  shader->setUniform("MVP",MVP);
+  shader->setUniform("Colour",_colour);
+}
 
 void NGLScene::loadMatricesToShader()
 {
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
+  auto *shader=ngl::ShaderLib::instance();
+  shader->use("Phong");
 
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
   ngl::Mat3 normalMatrix;
   ngl::Mat4 M;
   M=m_mouseGlobalTX*m_transform.getMatrix();
-  MV=m_cam.getViewMatrix()*M ;
-  MVP=m_cam.getProjectionMatrix()*MV ;
+  MV=m_view*M ;
+  MVP=m_project*MV ;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
   shader->setUniform("MV",MV);
@@ -124,8 +128,6 @@ void NGLScene::paintGL()
   m_mouseGlobalTX.m_m[3][0] = m_modelPos.m_x;
   m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_y;
   m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  shader->use("Phong");
 
   // grab an instance of the primitives for drawing
   ngl::VAOPrimitives *prim=ngl::VAOPrimitives::instance();
@@ -134,10 +136,8 @@ void NGLScene::paintGL()
 
   for(auto &light : m_lightArray)
   {
-    // enable the light (this will set the values)
-    light.enable();
-    m_transform.setPosition(light.getPos());
-    loadMatricesToShader();
+    m_transform.setPosition(light.position.toVec3());
+    loadMatricesToColourShader(light.diffuse);
     prim->draw("cube");
   }
 
@@ -187,37 +187,25 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
 
 void NGLScene::createLights()
 {
-  // light position
-  ngl::Vec3 pos;
   // light colour
-  ngl::Colour col,speccol;
   ngl::Random *rand=ngl::Random::instance();
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
   shader->use("Phong");
-  // we need to load the inverse view matrix to the light transform
-  // this will give us the correct light positions in eye space
-  ngl::Mat4 iv=m_cam.getViewMatrix();
-  iv.transpose();
   // loop for the NumLights lights and set the position and colour
   int i=0;
   for(auto &light : m_lightArray)
   {
-    light.enable();
     // get a random light position
-    pos=rand->getRandomPoint(20,20,20);
+    light.position=rand->getRandomPoint(20,20,20);
     // create random colour
-    col=rand->getRandomColour();
-    col.clamp(0.05f,0.3f);
-    speccol=rand->getRandomColour();
-    speccol.clamp(0.1f,0.2f);
-    // create an instance of the light and put it in the array
-    light.setPosition(pos);
-    light.setColour(col);
-    light.setSpecColour(speccol);
-    QString lightName=QString("light[%1]").arg(i++);
-    std::cout<<lightName.toStdString()<<"\n";
-    light.setTransform(iv);
-    light.loadToShader(lightName.toStdString());
+    light.diffuse=rand->getRandomColour4();
+    light.diffuse.clamp(0.05f,0.3f);
+    light.specular=rand->getRandomColour4();
+    light.specular.clamp(0.1f,0.2f);
+    shader->setUniform(fmt::format("light[{0}].position",i),light.position);
+    shader->setUniform(fmt::format("light[{0}].diffuse",i),light.diffuse);
+    shader->setUniform(fmt::format("light[{0}].specular",i),light.specular);
+
   }
 }
 
