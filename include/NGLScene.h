@@ -69,7 +69,7 @@ private:
     //----------------------------------------------------------------------------------------------------------------------
     ngl::Vec3 m_modelPos;
     // an array of lights
-    constexpr static int NumLights=8;
+    size_t m_numLights=8;
     struct Light
     {
       ngl::Vec4 position;
@@ -78,7 +78,7 @@ private:
       ngl::Vec4 specular;
     };
 
-    std::array<Light,NumLights> m_lightArray;
+    std::vector<Light> m_lightArray;
     ngl::Real m_teapotRotation=0.0f;
     int m_rotationTimer;
     int m_lightChangeTimer;
@@ -127,7 +127,7 @@ private:
     //----------------------------------------------------------------------------------------------------------------------
     void timerEvent(QTimerEvent *_event );
 
-
+    void updateLights(int _amount);
 
 };
 

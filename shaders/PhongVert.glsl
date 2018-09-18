@@ -1,10 +1,4 @@
 #version 330 core
-#pragma optionNV(fastmath on)
-#pragma optionNV(fastprecision on)
-#pragma optionNV(ifcvt none)
-#pragma optionNV(inline all)
-#pragma optionNV(strict on)
-#pragma optionNV(unroll all)
 /// @brief flag to indicate if model has unit normals if not normalize
 uniform bool Normalize;
 /// @brief the current fragment normal for the vert being processed
@@ -36,13 +30,12 @@ struct Lights
 };
 // our material
 uniform Materials material;
-#define numLights 8
 // array of lights
-uniform Lights light[numLights];
+uniform Lights light[@numLights];
 // direction of the lights used for shading
-out vec3 lightDir[numLights];
+out vec3 lightDir[@numLights];
 // direction of the lights used for shading
-out vec3 halfVector[numLights];
+out vec3 halfVector[@numLights];
 
 uniform mat4 M;
 uniform mat4 MV;
@@ -69,7 +62,7 @@ vec4 worldPosition = M * vec4(inVert, 1.0);
 eyeDirection = normalize(viewerPos - worldPosition.xyz);
 float dist;
 
- for(int i=0; i<numLights; ++i)
+ for(int i=0; i<@numLights; ++i)
  {
 	 lightDir[i]=vec3(light[i].position.xyz-eyeCord.xyz);
 	 dist = length(lightDir[i]);

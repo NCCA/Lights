@@ -1,10 +1,4 @@
 #version 330 core
-#pragma optionNV(fastmath on)
-#pragma optionNV(fastprecision on)
-#pragma optionNV(ifcvt none)
-#pragma optionNV(inline all)
-#pragma optionNV(strict on)
-#pragma optionNV(unroll all)
 /// @brief[in] the vertex normal
 in vec3 fragmentNormal;
 /// @brief the eye position passed in from main app
@@ -31,12 +25,11 @@ struct Lights
 // @param material passed from our program
 uniform Materials material;
 /// @param lights passed from our program
-#define numLights 8
 
-uniform Lights light[numLights];
-in vec3 lightDir[numLights];
+uniform Lights light[@numLights];
+in vec3 lightDir[@numLights];
 
-in vec3 halfVector[numLights];
+in vec3 halfVector[@numLights];
 in vec3 eyeDirection;
 
 
@@ -91,7 +84,7 @@ vec4 ambient=vec4(0.0);
 vec4 diffuse=vec4(0.0);
 vec4 specular=vec4(0.0);
 
-for (int i=0; i<numLights; ++i)
+for (int i=0; i<@numLights; ++i)
 {
 	pointLight(i,fragmentNormal,ambient,diffuse,specular);
 }

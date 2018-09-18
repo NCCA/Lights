@@ -11,6 +11,7 @@
 NGLScene::NGLScene()
 {
   setTitle("Multiple Point Lights");
+  m_lightArray.resize(m_numLights);
 }
 
 
@@ -50,16 +51,20 @@ void NGLScene::initializeGL()
   auto *shader=ngl::ShaderLib::instance();
 
   shader->createShaderProgram("Phong");
+  constexpr auto PhongVertex="PhongVertex";
+  constexpr auto PhongFragment="PhongFragment";
 
-  shader->attachShader("PhongVertex",ngl::ShaderType::VERTEX);
-  shader->attachShader("PhongFragment",ngl::ShaderType::FRAGMENT);
-  shader->loadShaderSource("PhongVertex","shaders/PhongVert.glsl");
-  shader->loadShaderSource("PhongFragment","shaders/PhongFrag.glsl");
-
-  shader->compileShader("PhongVertex");
-  shader->compileShader("PhongFragment");
-  shader->attachShaderToProgram("Phong","PhongVertex");
-  shader->attachShaderToProgram("Phong","PhongFragment");
+  shader->attachShader(PhongVertex,ngl::ShaderType::VERTEX);
+  shader->attachShader(PhongFragment,ngl::ShaderType::FRAGMENT);
+  shader->loadShaderSource(PhongVertex,"shaders/PhongVert.glsl");
+  shader->loadShaderSource(PhongFragment,"shaders/PhongFrag.glsl");
+  // the shader has a tag called @numLights, edit this and set to 8
+  shader->editShader(PhongVertex,"@numLights","8");
+  shader->editShader(PhongFragment,"@numLights","8");
+  shader->compileShader(PhongVertex);
+  shader->compileShader(PhongFragment);
+  shader->attachShaderToProgram("Phong",PhongVertex);
+  shader->attachShaderToProgram("Phong",PhongFragment);
 
   shader->linkProgramObject("Phong");
   (*shader)["Phong"]->use();
@@ -172,7 +177,8 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   case Qt::Key_Plus :
         ++m_scale;
   break;
-
+  case Qt::Key_1 : updateLights(-1); break;
+  case Qt::Key_2 :  updateLights(1); break;
     case Qt::Key_Minus :
           --m_scale;
     break;
@@ -226,3 +232,25 @@ void NGLScene::timerEvent( QTimerEvent *_event )
   }
 }
 
+void NGLScene::updateLights(int _amount)
+{
+  m_numLights+=_amount;
+  m_numLights=std::clamp(m_numLights,1ul,19ul);
+  auto *shader=ngl::ShaderLib::instance();
+  auto editString=fmt::format("{0}",m_numLights);
+  shader->editShader("PhongVertex","@numLights",editString);
+  shader->editShader("PhongFragment","@numLights",editString);
+  shader->compileShader("PhongVertex");
+  shader->compileShader("PhongFragment");
+  shader->linkProgramObject("Phong");
+  shader->use("Phong");
+  m_lightArray.resize(m_numLights);
+  createLights();
+  setTitle(QString(fmt::format("Number of Light {0}",m_numLights).c_str()));
+  shader->setUniform("material.ambient",0.19225f,0.19225f,0.19225f,1.0f);
+  shader->setUniform("material.diffuse",0.50754f,0.50754f,0.50754f,1.0f);
+  shader->setUniform("material.specular",0.508273f,0.508273f,0.508273f,1.0f);
+  shader->setUniform("material.shininess",51.2f);
+
+
+}
