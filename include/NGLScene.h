@@ -72,10 +72,8 @@ private:
     size_t m_numLights=8;
     struct Light
     {
-      ngl::Vec4 position;
-      ngl::Vec4 ambient;
-      ngl::Vec4 diffuse;
-      ngl::Vec4 specular;
+      ngl::Vec3 position;
+      ngl::Vec3 colour;
     };
 
     std::vector<Light> m_lightArray;
@@ -83,7 +81,7 @@ private:
     int m_rotationTimer;
     int m_lightChangeTimer;
     ngl::Real m_scale=8.0f;
-
+    bool m_showLights=true;
 
     //----------------------------------------------------------------------------------------------------------------------
     /// @brief method to load transform matrices to the shader
@@ -128,7 +126,7 @@ private:
     void timerEvent(QTimerEvent *_event );
 
     void updateLights(int _amount);
-
+    void loadShaderDefaults();
 };
 
 

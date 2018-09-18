@@ -14,7 +14,9 @@ NGLScene::NGLScene()
   m_lightArray.resize(m_numLights);
 }
 
-
+constexpr auto PBRShader="PBR";
+constexpr auto VertexShader="PBRVertex";
+constexpr auto FragmentShader="PBRFragment";
 NGLScene::~NGLScene()
 {
   ngl::msg->addMessage("Shutting down NGL, removing VAO's and Shaders");
@@ -50,33 +52,24 @@ void NGLScene::initializeGL()
   // grab an instance of shader manager
   auto *shader=ngl::ShaderLib::instance();
 
-  shader->createShaderProgram("Phong");
-  constexpr auto PhongVertex="PhongVertex";
-  constexpr auto PhongFragment="PhongFragment";
+  shader->createShaderProgram(PBRShader);
 
-  shader->attachShader(PhongVertex,ngl::ShaderType::VERTEX);
-  shader->attachShader(PhongFragment,ngl::ShaderType::FRAGMENT);
-  shader->loadShaderSource(PhongVertex,"shaders/PhongVert.glsl");
-  shader->loadShaderSource(PhongFragment,"shaders/PhongFrag.glsl");
+  shader->attachShader(VertexShader,ngl::ShaderType::VERTEX);
+  shader->attachShader(FragmentShader,ngl::ShaderType::FRAGMENT);
+  shader->loadShaderSource(VertexShader,"shaders/PBRVertex.glsl");
+  shader->loadShaderSource(FragmentShader,"shaders/PBRFragment.glsl");
   // the shader has a tag called @numLights, edit this and set to 8
-  shader->editShader(PhongVertex,"@numLights","8");
-  shader->editShader(PhongFragment,"@numLights","8");
-  shader->compileShader(PhongVertex);
-  shader->compileShader(PhongFragment);
-  shader->attachShaderToProgram("Phong",PhongVertex);
-  shader->attachShaderToProgram("Phong",PhongFragment);
+  shader->editShader(VertexShader,"@numLights","8");
+  shader->editShader(FragmentShader,"@numLights","8");
+  shader->compileShader(VertexShader);
+  shader->compileShader(FragmentShader);
+  shader->attachShaderToProgram(PBRShader,VertexShader);
+  shader->attachShaderToProgram(PBRShader,FragmentShader);
 
-  shader->linkProgramObject("Phong");
-  (*shader)["Phong"]->use();
+  shader->linkProgramObject(PBRShader);
+  (*shader)[PBRShader]->use();
 
-  // now pass the modelView and projection values to the shader
-  shader->setUniform("Normalize",1);
-  shader->setUniform("viewerPos",from);
-  shader->setUniform("material.ambient",0.19225f,0.19225f,0.19225f,1.0f);
-  shader->setUniform("material.diffuse",0.50754f,0.50754f,0.50754f,1.0f);
-  shader->setUniform("material.specular",0.508273f,0.508273f,0.508273f,1.0f);
-  shader->setUniform("material.shininess",51.2f);
-
+  loadShaderDefaults();
   // now set the material and light values
 
   // create the lights
@@ -86,6 +79,21 @@ void NGLScene::initializeGL()
 
 
 }
+
+void NGLScene::loadShaderDefaults()
+{
+  auto *shader=ngl::ShaderLib::instance();
+  shader->use(PBRShader);
+  shader->setUniform( "camPos", 0.0f,10.0f,20.0f );
+  shader->setUniform("exposure",2.2f);
+  shader->setUniform("albedo",0.950f, 0.71f, 0.29f);
+
+  shader->setUniform("metallic",1.02f);
+  shader->setUniform("roughness",0.38f);
+  shader->setUniform("ao",0.2f);
+
+}
+
 void NGLScene::loadMatricesToColourShader(const ngl::Vec4 &_colour)
 {
   auto *shader=ngl::ShaderLib::instance();
@@ -98,7 +106,7 @@ void NGLScene::loadMatricesToColourShader(const ngl::Vec4 &_colour)
 void NGLScene::loadMatricesToShader()
 {
   auto *shader=ngl::ShaderLib::instance();
-  shader->use("Phong");
+  shader->use(PBRShader);
 
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
@@ -109,7 +117,6 @@ void NGLScene::loadMatricesToShader()
   MVP=m_project*MV ;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
-  shader->setUniform("MV",MV);
   shader->setUniform("MVP",MVP);
   shader->setUniform("normalMatrix",normalMatrix);
   shader->setUniform("M",M);
@@ -133,19 +140,19 @@ void NGLScene::paintGL()
   m_mouseGlobalTX.m_m[3][0] = m_modelPos.m_x;
   m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_y;
   m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
-
   // grab an instance of the primitives for drawing
-  ngl::VAOPrimitives *prim=ngl::VAOPrimitives::instance();
-
-  m_transform.reset();
-
-  for(auto &light : m_lightArray)
+  auto *prim=ngl::VAOPrimitives::instance();
+  if(m_showLights)
   {
-    m_transform.setPosition(light.position.toVec3());
-    loadMatricesToColourShader(light.diffuse);
-    prim->draw("cube");
-  }
+    m_transform.reset();
 
+    for(auto &light : m_lightArray)
+    {
+      m_transform.setPosition(light.position);
+      loadMatricesToColourShader(light.colour);
+      prim->draw("cube");
+    }
+  }
   m_transform.reset();
   m_transform.setScale(m_scale,m_scale,m_scale);
   m_transform.setRotation(m_teapotRotation,m_teapotRotation,m_teapotRotation);
@@ -182,7 +189,7 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
     case Qt::Key_Minus :
           --m_scale;
     break;
-
+  case Qt::Key_Space : m_showLights^=true; break;
   default : break;
   }
   // finally update the GLWindow and re-draw
@@ -196,7 +203,7 @@ void NGLScene::createLights()
   // light colour
   ngl::Random *rand=ngl::Random::instance();
   ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  shader->use("Phong");
+  shader->use(PBRShader);
   // loop for the NumLights lights and set the position and colour
   int i=0;
   for(auto &light : m_lightArray)
@@ -204,14 +211,10 @@ void NGLScene::createLights()
     // get a random light position
     light.position=rand->getRandomPoint(20,20,20);
     // create random colour
-    light.diffuse=rand->getRandomColour4();
-    light.diffuse.clamp(0.05f,0.3f);
-    light.specular=rand->getRandomColour4();
-    light.specular.clamp(0.1f,0.2f);
-    shader->setUniform(fmt::format("light[{0}].position",i),light.position);
-    shader->setUniform(fmt::format("light[{0}].diffuse",i),light.diffuse);
-    shader->setUniform(fmt::format("light[{0}].specular",i),light.specular);
-
+    light.colour=rand->getRandomColour3()*200;
+    shader->setUniform(fmt::format("lightPositions[{0}]",i),light.position);
+    shader->setUniform(fmt::format("lightColours[{0}]",i),light.colour);
+    ++i;
   }
 }
 
@@ -235,22 +238,18 @@ void NGLScene::timerEvent( QTimerEvent *_event )
 void NGLScene::updateLights(int _amount)
 {
   m_numLights+=_amount;
-  m_numLights=std::clamp(m_numLights,1ul,19ul);
+  m_numLights=std::clamp(m_numLights,1ul,60ul);
   auto *shader=ngl::ShaderLib::instance();
   auto editString=fmt::format("{0}",m_numLights);
-  shader->editShader("PhongVertex","@numLights",editString);
-  shader->editShader("PhongFragment","@numLights",editString);
-  shader->compileShader("PhongVertex");
-  shader->compileShader("PhongFragment");
-  shader->linkProgramObject("Phong");
-  shader->use("Phong");
+  shader->editShader(VertexShader,"@numLights",editString);
+  shader->editShader(FragmentShader,"@numLights",editString);
+  shader->compileShader(VertexShader);
+  shader->compileShader(FragmentShader);
+  shader->linkProgramObject(PBRShader);
+  shader->use(PBRShader);
   m_lightArray.resize(m_numLights);
   createLights();
   setTitle(QString(fmt::format("Number of Light {0}",m_numLights).c_str()));
-  shader->setUniform("material.ambient",0.19225f,0.19225f,0.19225f,1.0f);
-  shader->setUniform("material.diffuse",0.50754f,0.50754f,0.50754f,1.0f);
-  shader->setUniform("material.specular",0.508273f,0.508273f,0.508273f,1.0f);
-  shader->setUniform("material.shininess",51.2f);
-
+  loadShaderDefaults();
 
 }
