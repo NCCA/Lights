@@ -211,7 +211,7 @@ void NGLScene::createLights()
     // get a random light position
     light.position=rand->getRandomPoint(20,20,20);
     // create random colour
-    light.colour=rand->getRandomColour3()*200;
+    light.colour=ngl::Vec3(0.1f,0.1f,0.1f)+rand->getRandomColour3()*200;
     shader->setUniform(fmt::format("lightPositions[{0}]",i),light.position);
     shader->setUniform(fmt::format("lightColours[{0}]",i),light.colour);
     ++i;
@@ -238,7 +238,7 @@ void NGLScene::timerEvent( QTimerEvent *_event )
 void NGLScene::updateLights(int _amount)
 {
   m_numLights+=_amount;
-  m_numLights=std::clamp(m_numLights,1ul,60ul);
+  m_numLights=std::clamp(m_numLights,1ul,120ul);
   auto *shader=ngl::ShaderLib::instance();
   auto editString=fmt::format("{0}",m_numLights);
   shader->editShader(VertexShader,"@numLights",editString);
