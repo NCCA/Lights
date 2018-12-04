@@ -8,6 +8,8 @@
 #include <ngl/Random.h>
 #include <ngl/ShaderLib.h>
 
+
+
 NGLScene::NGLScene()
 {
   setTitle("Multiple Point Lights");
@@ -238,7 +240,8 @@ void NGLScene::timerEvent( QTimerEvent *_event )
 void NGLScene::updateLights(int _amount)
 {
   m_numLights+=_amount;
-  m_numLights=std::clamp(m_numLights,1ul,120ul);
+//  m_numLights=clamp(m_numLights,1,120);
+  m_numLights=std::min(m_numLights, std::max(1ul, 120ul));
   auto *shader=ngl::ShaderLib::instance();
   auto editString=fmt::format("{0}",m_numLights);
   shader->editShader(VertexShader,"@numLights",editString);
