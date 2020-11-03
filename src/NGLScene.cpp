@@ -35,7 +35,7 @@ void NGLScene::resizeGL( int _w, int _h )
 
 void NGLScene::initializeGL()
 {
-  ngl::NGLInit::instance();
+  ngl::NGLInit::initialize();
 
   glClearColor(0.4f, 0.4f, 0.4f, 1.0f);			   // Grey Background
   // enable depth testing for drawing
@@ -52,26 +52,23 @@ void NGLScene::initializeGL()
   // set the shape using FOV 45 Aspect Ratio based on Width and Height
   // The final two are near and far clipping planes of 0.5 and 10
   m_project=ngl::perspective(45.0f,720.0f/576.0f,0.5f,150.0f);
-  // now to load the shader and set the values
-  // grab an instance of shader manager
-  auto *shader=ngl::ShaderLib::instance();
 
-  shader->createShaderProgram(PBRShader);
+  ngl::ShaderLib::createShaderProgram(PBRShader);
 
-  shader->attachShader(VertexShader,ngl::ShaderType::VERTEX);
-  shader->attachShader(FragmentShader,ngl::ShaderType::FRAGMENT);
-  shader->loadShaderSource(VertexShader,"shaders/PBRVertex.glsl");
-  shader->loadShaderSource(FragmentShader,"shaders/PBRFragment.glsl");
+  ngl::ShaderLib::attachShader(VertexShader,ngl::ShaderType::VERTEX);
+  ngl::ShaderLib::attachShader(FragmentShader,ngl::ShaderType::FRAGMENT);
+  ngl::ShaderLib::loadShaderSource(VertexShader,"shaders/PBRVertex.glsl");
+  ngl::ShaderLib::loadShaderSource(FragmentShader,"shaders/PBRFragment.glsl");
   // the shader has a tag called @numLights, edit this and set to 8
-  shader->editShader(VertexShader,"@numLights","8");
-  shader->editShader(FragmentShader,"@numLights","8");
-  shader->compileShader(VertexShader);
-  shader->compileShader(FragmentShader);
-  shader->attachShaderToProgram(PBRShader,VertexShader);
-  shader->attachShaderToProgram(PBRShader,FragmentShader);
+  ngl::ShaderLib::editShader(VertexShader,"@numLights","8");
+  ngl::ShaderLib::editShader(FragmentShader,"@numLights","8");
+  ngl::ShaderLib::compileShader(VertexShader);
+  ngl::ShaderLib::compileShader(FragmentShader);
+  ngl::ShaderLib::attachShaderToProgram(PBRShader,VertexShader);
+  ngl::ShaderLib::attachShaderToProgram(PBRShader,FragmentShader);
 
-  shader->linkProgramObject(PBRShader);
-  (*shader)[PBRShader]->use();
+  ngl::ShaderLib::linkProgramObject(PBRShader);
+  ngl::ShaderLib::use(PBRShader);
 
   loadShaderDefaults();
   // now set the material and light values
@@ -86,31 +83,28 @@ void NGLScene::initializeGL()
 
 void NGLScene::loadShaderDefaults()
 {
-  auto *shader=ngl::ShaderLib::instance();
-  shader->use(PBRShader);
-  shader->setUniform( "camPos", 0.0f,10.0f,20.0f );
-  shader->setUniform("exposure",2.2f);
-  shader->setUniform("albedo",0.950f, 0.71f, 0.29f);
+  ngl::ShaderLib::use(PBRShader);
+  ngl::ShaderLib::setUniform( "camPos", 0.0f,10.0f,20.0f );
+  ngl::ShaderLib::setUniform("exposure",2.2f);
+  ngl::ShaderLib::setUniform("albedo",0.950f, 0.71f, 0.29f);
 
-  shader->setUniform("metallic",1.02f);
-  shader->setUniform("roughness",0.38f);
-  shader->setUniform("ao",0.2f);
+  ngl::ShaderLib::setUniform("metallic",1.02f);
+  ngl::ShaderLib::setUniform("roughness",0.38f);
+  ngl::ShaderLib::setUniform("ao",0.2f);
 
 }
 
 void NGLScene::loadMatricesToColourShader(const ngl::Vec4 &_colour)
 {
-  auto *shader=ngl::ShaderLib::instance();
-  shader->use(ngl::nglColourShader);
+  ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::Mat4 MVP=m_project*m_view*m_mouseGlobalTX*m_transform.getMatrix();
-  shader->setUniform("MVP",MVP);
-  shader->setUniform("Colour",_colour);
+  ngl::ShaderLib::setUniform("MVP",MVP);
+  ngl::ShaderLib::setUniform("Colour",_colour);
 }
 
 void NGLScene::loadMatricesToShader()
 {
-  auto *shader=ngl::ShaderLib::instance();
-  shader->use(PBRShader);
+  ngl::ShaderLib::use(PBRShader);
 
   ngl::Mat4 MV;
   ngl::Mat4 MVP;
@@ -121,9 +115,9 @@ void NGLScene::loadMatricesToShader()
   MVP=m_project*MV ;
   normalMatrix=MV;
   normalMatrix.inverse().transpose();
-  shader->setUniform("MVP",MVP);
-  shader->setUniform("normalMatrix",normalMatrix);
-  shader->setUniform("M",M);
+  ngl::ShaderLib::setUniform("MVP",MVP);
+  ngl::ShaderLib::setUniform("normalMatrix",normalMatrix);
+  ngl::ShaderLib::setUniform("M",M);
 }
 
 void NGLScene::paintGL()
@@ -145,7 +139,6 @@ void NGLScene::paintGL()
   m_mouseGlobalTX.m_m[3][1] = m_modelPos.m_y;
   m_mouseGlobalTX.m_m[3][2] = m_modelPos.m_z;
   // grab an instance of the primitives for drawing
-  auto *prim=ngl::VAOPrimitives::instance();
   if(m_showLights)
   {
     m_transform.reset();
@@ -154,7 +147,7 @@ void NGLScene::paintGL()
     {
       m_transform.setPosition(light.position);
       loadMatricesToColourShader(light.colour);
-      prim->draw("cube");
+      ngl::VAOPrimitives::draw("cube");
     }
   }
   m_transform.reset();
@@ -162,7 +155,7 @@ void NGLScene::paintGL()
   m_transform.setRotation(m_teapotRotation,m_teapotRotation,m_teapotRotation);
   // now set this value in the shader for the current ModelMatrix
   loadMatricesToShader();
-  prim->draw("teapot");
+  ngl::VAOPrimitives::draw("teapot");
 }
 
 
@@ -205,19 +198,17 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
 void NGLScene::createLights()
 {
   // light colour
-  ngl::Random *rand=ngl::Random::instance();
-  ngl::ShaderLib *shader=ngl::ShaderLib::instance();
-  shader->use(PBRShader);
+  ngl::ShaderLib::use(PBRShader);
   // loop for the NumLights lights and set the position and colour
   int i=0;
   for(auto &light : m_lightArray)
   {
     // get a random light position
-    light.position=rand->getRandomPoint(20,20,20);
+    light.position=ngl::Random::getRandomPoint(20,20,20);
     // create random colour
-    light.colour=ngl::Vec3(0.1f,0.1f,0.1f)+rand->getRandomColour3()*200;
-    shader->setUniform(fmt::format("lightPositions[{0}]",i),light.position);
-    shader->setUniform(fmt::format("lightColours[{0}]",i),light.colour);
+    light.colour=ngl::Vec3(0.1f,0.1f,0.1f)+ngl::Random::getRandomColour3()*200;
+    ngl::ShaderLib::setUniform(fmt::format("lightPositions[{0}]",i),light.position);
+    ngl::ShaderLib::setUniform(fmt::format("lightColours[{0}]",i),light.colour);
     ++i;
   }
 }
@@ -243,15 +234,14 @@ void NGLScene::updateLights(int _amount)
 {
   m_numLights+=_amount;
 //  m_numLights=clamp(m_numLights,1,120);
-  m_numLights=std::min(m_numLights, std::max(1u, 120u));
-  auto *shader=ngl::ShaderLib::instance();
+  m_numLights=std::min(m_numLights, std::max(1ul, 120ul));
   auto editString=fmt::format("{0}",m_numLights);
-  shader->editShader(VertexShader,"@numLights",editString);
-  shader->editShader(FragmentShader,"@numLights",editString);
-  shader->compileShader(VertexShader);
-  shader->compileShader(FragmentShader);
-  shader->linkProgramObject(PBRShader);
-  shader->use(PBRShader);
+  ngl::ShaderLib::editShader(VertexShader,"@numLights",editString);
+  ngl::ShaderLib::editShader(FragmentShader,"@numLights",editString);
+  ngl::ShaderLib::compileShader(VertexShader);
+  ngl::ShaderLib::compileShader(FragmentShader);
+  ngl::ShaderLib::linkProgramObject(PBRShader);
+  ngl::ShaderLib::use(PBRShader);
   m_lightArray.resize(m_numLights);
   createLights();
   setTitle(QString(fmt::format("Number of Light {0}",m_numLights).c_str()));
