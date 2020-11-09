@@ -60,7 +60,6 @@ void NGLScene::initializeGL()
   ngl::ShaderLib::loadShaderSource(VertexShader,"shaders/PBRVertex.glsl");
   ngl::ShaderLib::loadShaderSource(FragmentShader,"shaders/PBRFragment.glsl");
   // the shader has a tag called @numLights, edit this and set to 8
-  ngl::ShaderLib::editShader(VertexShader,"@numLights","8");
   ngl::ShaderLib::editShader(FragmentShader,"@numLights","8");
   ngl::ShaderLib::compileShader(VertexShader);
   ngl::ShaderLib::compileShader(FragmentShader);
@@ -85,9 +84,7 @@ void NGLScene::loadShaderDefaults()
 {
   ngl::ShaderLib::use(PBRShader);
   ngl::ShaderLib::setUniform( "camPos", 0.0f,10.0f,20.0f );
-  ngl::ShaderLib::setUniform("exposure",2.2f);
   ngl::ShaderLib::setUniform("albedo",0.950f, 0.71f, 0.29f);
-
   ngl::ShaderLib::setUniform("metallic",1.02f);
   ngl::ShaderLib::setUniform("roughness",0.38f);
   ngl::ShaderLib::setUniform("ao",0.2f);
@@ -99,7 +96,7 @@ void NGLScene::loadMatricesToColourShader(const ngl::Vec4 &_colour)
   ngl::ShaderLib::use(ngl::nglColourShader);
   ngl::Mat4 MVP=m_project*m_view*m_mouseGlobalTX*m_transform.getMatrix();
   ngl::ShaderLib::setUniform("MVP",MVP);
-  ngl::ShaderLib::setUniform("Colour",_colour);
+  ngl::ShaderLib::setUniform("Colour",_colour/200.0f);
 }
 
 void NGLScene::loadMatricesToShader()
@@ -189,8 +186,6 @@ void NGLScene::keyPressEvent(QKeyEvent *_event)
   case Qt::Key_Space : m_showLights^=true; break;
   default : break;
   }
-  // finally update the GLWindow and re-draw
-  //if (isExposed())
     update();
 }
 
@@ -206,7 +201,7 @@ void NGLScene::createLights()
     // get a random light position
     light.position=ngl::Random::getRandomPoint(20,20,20);
     // create random colour
-    light.colour=ngl::Vec3(0.1f,0.1f,0.1f)+ngl::Random::getRandomColour3()*200;
+    light.colour=ngl::Vec3(0.1f,0.1f,0.1f)+ngl::Random::getRandomColour3()*100;
     ngl::ShaderLib::setUniform(fmt::format("lightPositions[{0}]",i),light.position);
     ngl::ShaderLib::setUniform(fmt::format("lightColours[{0}]",i),light.colour);
     ++i;
@@ -232,11 +227,13 @@ void NGLScene::timerEvent( QTimerEvent *_event )
 
 void NGLScene::updateLights(int _amount)
 {
+  ngl::ShaderLib::use(PBRShader);
   m_numLights+=_amount;
 //  m_numLights=clamp(m_numLights,1,120);
   m_numLights=std::min(m_numLights, std::max(1ul, 120ul));
   auto editString=fmt::format("{0}",m_numLights);
-  ngl::ShaderLib::editShader(VertexShader,"@numLights",editString);
+  ngl::ShaderLib::resetEdits(FragmentShader);
+
   ngl::ShaderLib::editShader(FragmentShader,"@numLights",editString);
   ngl::ShaderLib::compileShader(VertexShader);
   ngl::ShaderLib::compileShader(FragmentShader);
@@ -246,5 +243,4 @@ void NGLScene::updateLights(int _amount)
   createLights();
   setTitle(QString(fmt::format("Number of Light {0}",m_numLights).c_str()));
   loadShaderDefaults();
-
 }
