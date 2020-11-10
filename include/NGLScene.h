@@ -68,7 +68,7 @@ private:
     //----------------------------------------------------------------------------------------------------------------------
     ngl::Vec3 m_modelPos;
     // an array of lights
-    size_t m_numLights=8;
+    int m_numLights=8;
     struct Light
     {
       ngl::Vec3 position;

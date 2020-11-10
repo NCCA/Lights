@@ -230,7 +230,7 @@ void NGLScene::updateLights(int _amount)
   ngl::ShaderLib::use(PBRShader);
   m_numLights+=_amount;
 //  m_numLights=clamp(m_numLights,1,120);
-  m_numLights=std::min(m_numLights, std::max(1ul, 120ul));
+  m_numLights=std::min(m_numLights, std::max(1, 120));
   auto editString=fmt::format("{0}",m_numLights);
   ngl::ShaderLib::resetEdits(FragmentShader);
 
